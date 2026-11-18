@@ -1,4 +1,9 @@
-# RemNote MCP Server
+# RemNote MCP Server (bberkesever fork)
+
+> **This is a fork.** It is based on [robert7/remnote-mcp-server](https://github.com/robert7/remnote-mcp-server)
+> (MIT) by Robert Spiegel, with additions by [bberkesever](https://github.com/bberkesever), notably the guarded
+> `remnote_delete_note` tool (`dryRun` by default, `expectedDescendantCount` confirmation). Use it with the matching
+> bridge fork, [bberkesever/remnote-mcp-bridge](https://github.com/bberkesever/remnote-mcp-bridge).
 
 ![License](https://img.shields.io/badge/license-MIT-blue)
 ![CI](https://github.com/robert7/remnote-mcp-server/actions/workflows/ci.yml/badge.svg)
