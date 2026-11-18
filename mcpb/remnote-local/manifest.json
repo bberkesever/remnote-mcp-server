@@ -57,6 +57,10 @@
       "description": "Safely move an existing Rem and its subtree under a new parent. Defaults to dryRun=true; pass dryRun=false only after user approval. expectedOldParentRemId rejects stale move proposals."
     },
     {
+      "name": "remnote_delete_note",
+      "description": "Permanently delete a Rem AND ALL OF ITS DESCENDANTS (no undo, no trash). Defaults to dryRun=true, which reports descendantCount; pass dryRun=false only after user approval, together with expectedDescendantCount from the preview when the Rem has descendants. expectedTitle rejects stale delete proposals."
+    },
+    {
       "name": "remnote_insert_children",
       "description": "Insert new child Rems under a parent at a deterministic position without replacing existing children. Use this for tag description nodes and hierarchy maintenance."
     },

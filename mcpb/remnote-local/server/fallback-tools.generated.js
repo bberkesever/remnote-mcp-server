@@ -379,6 +379,34 @@ export const FALLBACK_TOOLS = [
     },
   },
   {
+    name: 'remnote_delete_note',
+    description:
+      'Permanently delete a Rem AND ALL OF ITS DESCENDANTS (no undo, no trash). Defaults to dryRun=true, which reports descendantCount; pass dryRun=false only after user approval, together with expectedDescendantCount from the preview when the Rem has descendants. expectedTitle rejects stale delete proposals.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        remId: {
+          type: 'string',
+          description: 'Rem ID to delete',
+        },
+        dryRun: {
+          type: 'boolean',
+          description: 'Preview without mutating RemNote (default: true)',
+        },
+        expectedTitle: {
+          type: 'string',
+          description: 'Reject if the current title differs from this text',
+        },
+        expectedDescendantCount: {
+          type: 'number',
+          description:
+            'Required for real deletion of a Rem with descendants: must match descendantCount from the dryRun preview',
+        },
+      },
+      required: ['remId'],
+    },
+  },
+  {
     name: 'remnote_insert_children',
     description:
       'Insert new child Rems under a parent at a deterministic position without replacing existing children. Use this for tag description nodes and hierarchy maintenance.',

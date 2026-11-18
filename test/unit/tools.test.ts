@@ -19,6 +19,7 @@ import {
   LIST_CHILDREN_TOOL,
   INSERT_CHILDREN_TOOL,
   MOVE_NOTE_TOOL,
+  DELETE_NOTE_TOOL,
   REPLACE_CHILDREN_TOOL,
   UPDATE_TAGS_TOOL,
   SET_PROPERTY_TOOL,
@@ -391,6 +392,7 @@ describe('Tool Definitions', () => {
     expect(LIST_CHILDREN_TOOL.name).toBe('remnote_list_children');
     expect(INSERT_CHILDREN_TOOL.name).toBe('remnote_insert_children');
     expect(MOVE_NOTE_TOOL.name).toBe('remnote_move_note');
+    expect(DELETE_NOTE_TOOL.name).toBe('remnote_delete_note');
     expect(SET_DOCUMENT_STATUS_TOOL.name).toBe('remnote_set_document_status');
     expect(REPLACE_CHILDREN_TOOL.name).toBe('remnote_replace_children');
     expect(UPDATE_TAGS_TOOL.name).toBe('remnote_update_tags');
@@ -499,14 +501,14 @@ describe('Tool Registration', () => {
     expect(mockServer.hasHandler(ListToolsRequestSchema)).toBe(true);
   });
 
-  it('should return all 17 tools in list', async () => {
+  it('should return all 18 tools in list', async () => {
     registerAllTools(mockServer as never, mockWsServer as never, createMockLogger());
 
     const result = (await mockServer.callHandler(ListToolsRequestSchema, {})) as {
       tools: unknown[];
     };
 
-    expect(result.tools).toHaveLength(17);
+    expect(result.tools).toHaveLength(18);
   });
 
   it('should include all tool names in list', async () => {
@@ -1240,6 +1242,50 @@ describe('Tool Handlers - split write tools', () => {
       expectedOldParentRemId: 'old-parent',
       ancestorDepth: 2,
     });
+  });
+
+  it('should default delete_note to dryRun and forward the delete_note action', async () => {
+    await mockServer.callHandler(CallToolRequestSchema, {
+      params: { name: 'remnote_delete_note', arguments: { remId: 'doomed' } },
+    });
+
+    expect(mockWsServer.sendRequest).toHaveBeenCalledWith('delete_note', {
+      remId: 'doomed',
+      dryRun: true,
+    });
+  });
+
+  it('should forward real delete_note guards unchanged', async () => {
+    await mockServer.callHandler(CallToolRequestSchema, {
+      params: {
+        name: 'remnote_delete_note',
+        arguments: {
+          remId: 'doomed',
+          dryRun: false,
+          expectedTitle: 'Doomed',
+          expectedDescendantCount: 3,
+        },
+      },
+    });
+
+    expect(mockWsServer.sendRequest).toHaveBeenCalledWith('delete_note', {
+      remId: 'doomed',
+      dryRun: false,
+      expectedTitle: 'Doomed',
+      expectedDescendantCount: 3,
+    });
+  });
+
+  it('should reject delete_note with a negative expectedDescendantCount', async () => {
+    const result = (await mockServer.callHandler(CallToolRequestSchema, {
+      params: {
+        name: 'remnote_delete_note',
+        arguments: { remId: 'doomed', dryRun: false, expectedDescendantCount: -1 },
+      },
+    })) as { isError: boolean };
+
+    expect(result.isError).toBe(true);
+    expect(mockWsServer.sendRequest).not.toHaveBeenCalled();
   });
 
   it('should reject insert before without siblingRemId', async () => {

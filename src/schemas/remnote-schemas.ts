@@ -237,6 +237,28 @@ export const MoveNoteSchema = z
     }
   });
 
+export const DeleteNoteSchema = z
+  .object({
+    remId: z.string().min(1).describe('Rem ID to delete'),
+    dryRun: z
+      .boolean()
+      .default(true)
+      .describe('Preview the deletion (including descendant count) without mutating RemNote'),
+    expectedTitle: z
+      .string()
+      .optional()
+      .describe('Reject if the Rem current title is different from this text'),
+    expectedDescendantCount: z
+      .number()
+      .int()
+      .min(0)
+      .optional()
+      .describe(
+        'Required when deleting a Rem that has descendants: must equal the descendantCount from the dryRun preview'
+      ),
+  })
+  .strict();
+
 export const UpdateNoteSchema = z
   .object({
     remId: z.string().describe('The Rem ID to update'),

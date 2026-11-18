@@ -9,7 +9,7 @@ import { GetMediaSchema } from '../schemas/remnote-schemas.js';
 import { UpdateNoteSchema } from '../schemas/remnote-schemas.js';
 import { SetDocumentStatusSchema } from '../schemas/remnote-schemas.js';
 import { ListChildrenSchema } from '../schemas/remnote-schemas.js';
-import { MoveNoteSchema } from '../schemas/remnote-schemas.js';
+import { DeleteNoteSchema, MoveNoteSchema } from '../schemas/remnote-schemas.js';
 import { InsertChildrenSchema } from '../schemas/remnote-schemas.js';
 import { ReplaceChildrenSchema } from '../schemas/remnote-schemas.js';
 import { UpdateTagsSchema } from '../schemas/remnote-schemas.js';
@@ -813,6 +813,47 @@ export const MOVE_NOTE_TOOL = {
   },
 };
 
+export const DELETE_NOTE_TOOL = {
+  name: 'remnote_delete_note',
+  description:
+    'Permanently delete a Rem AND ALL OF ITS DESCENDANTS (no undo, no trash). Defaults to dryRun=true, which reports descendantCount; pass dryRun=false only after user approval, together with expectedDescendantCount from the preview when the Rem has descendants. expectedTitle rejects stale delete proposals.',
+  inputSchema: {
+    type: 'object' as const,
+    properties: {
+      remId: { type: 'string', description: 'Rem ID to delete' },
+      dryRun: {
+        type: 'boolean',
+        description: 'Preview without mutating RemNote (default: true)',
+      },
+      expectedTitle: {
+        type: 'string',
+        description: 'Reject if the current title differs from this text',
+      },
+      expectedDescendantCount: {
+        type: 'number',
+        description:
+          'Required for real deletion of a Rem with descendants: must match descendantCount from the dryRun preview',
+      },
+    },
+    required: ['remId'],
+  },
+  outputSchema: {
+    type: 'object' as const,
+    properties: {
+      remId: { type: 'string' },
+      title: { type: 'string' },
+      dryRun: { type: 'boolean' },
+      deleted: { type: 'boolean' },
+      parentRemId: { type: 'string' },
+      parentTitle: { type: 'string' },
+      childCount: { type: 'number' },
+      descendantCount: { type: 'number' },
+      descendantCountTruncated: { type: 'boolean' },
+    },
+    required: ['remId', 'title', 'dryRun', 'deleted', 'childCount', 'descendantCount'],
+  },
+};
+
 export const UPDATE_NOTE_TOOL = {
   name: 'remnote_update_note',
   description:
@@ -1337,6 +1378,7 @@ export const ALL_TOOLS = [
   UPDATE_NOTE_TOOL,
   SET_DOCUMENT_STATUS_TOOL,
   MOVE_NOTE_TOOL,
+  DELETE_NOTE_TOOL,
   INSERT_CHILDREN_TOOL,
   REPLACE_CHILDREN_TOOL,
   UPDATE_TAGS_TOOL,
@@ -1493,6 +1535,12 @@ export function registerAllTools(
           break;
         }
 
+        case 'remnote_delete_note': {
+          const args = DeleteNoteSchema.parse(request.params.arguments);
+          result = await wsServer.sendRequest('delete_note', args);
+          break;
+        }
+
         case 'remnote_replace_children': {
           const args = ReplaceChildrenSchema.parse(request.params.arguments);
           result = await wsServer.sendRequest('replace_children', args);
@@ -1560,6 +1608,7 @@ export function registerAllTools(
               'Need to append to today journal? Use remnote_append_journal; pass tagRemIds when the journal entry should be tagged and [[id:<remId>]] for exact inline Rem references.',
               'Need to insert children? Use remnote_insert_children with an explicit position; use [[id:<remId>]] for exact inline Rem references.',
               'Need to move a note? Use remnote_move_note dryRun first, include expectedOldParentRemId for stale-context protection, then rerun with dryRun=false after approval.',
+              'Need to delete a note? Use remnote_delete_note dryRun first (it reports descendantCount; deletion is permanent and removes all descendants), get user approval, then rerun with dryRun=false, expectedTitle, and expectedDescendantCount from the preview.',
               'Need to replace children? Check remnote_status first; remnote_replace_children requires acceptReplaceOperation=true, preserves parent metadata, and supports [[id:<remId>]] for exact inline Rem references.',
               'Need to update tags on an existing note? Use remnote_update_tags with exact tag Rem IDs.',
               'Need to set a tag/table property value? Use remnote_set_property with exact remId, tagRemId, propertyRemId, and a text/rem_reference/clear value payload. For select properties, pass the option Rem ID as rem_reference.remId; for inline references in text values, use [[id:<remId>]].',
@@ -1591,6 +1640,7 @@ export function registerAllTools(
                 'remnote_replace_children requires acceptReplaceOperation=true and preserves parent identity, title, aliases, document status, tags, and properties.',
                 'remnote_insert_children preserves existing child Rem IDs; remnote_replace_children removes existing direct content-child Rem IDs.',
                 'remnote_move_note preserves the moved Rem ID and subtree; dryRun defaults to true.',
+                'remnote_delete_note permanently deletes the Rem and all descendants with no undo; dryRun defaults to true and real deletion of a Rem with descendants requires expectedDescendantCount from the preview.',
                 'All production tag writes use exact tag Rem IDs: create_note.tagRemIds, append_journal.tagRemIds, and update_tags add/remove arrays.',
                 'Markdown-capable write fields support [[id:<remId>]] to create real inline references to existing Rems without name lookup.',
                 'remnote_set_property writes exact-ID tag/table property values and requires acceptWriteOperations=true.',
