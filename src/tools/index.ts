@@ -1218,6 +1218,10 @@ export const STATUS_TOOL = {
         type: 'boolean',
         description: 'Whether bridge allows remnote_replace_children operations',
       },
+      acceptDeleteOperation: {
+        type: 'boolean',
+        description: 'Whether bridge allows remnote_delete_note operations',
+      },
       message: {
         type: 'string',
         description: 'Connection status message (for disconnected states)',
@@ -1608,7 +1612,7 @@ export function registerAllTools(
               'Need to append to today journal? Use remnote_append_journal; pass tagRemIds when the journal entry should be tagged and [[id:<remId>]] for exact inline Rem references.',
               'Need to insert children? Use remnote_insert_children with an explicit position; use [[id:<remId>]] for exact inline Rem references.',
               'Need to move a note? Use remnote_move_note dryRun first, include expectedOldParentRemId for stale-context protection, then rerun with dryRun=false after approval.',
-              'Need to delete a note? Use remnote_delete_note dryRun first (it reports descendantCount; deletion is permanent and removes all descendants), get user approval, then rerun with dryRun=false, expectedTitle, and expectedDescendantCount from the preview.',
+              'Need to delete a note? Check remnote_status first; remnote_delete_note requires acceptDeleteOperation=true (off by default). Use remnote_delete_note dryRun first (it reports descendantCount; deletion is permanent and removes all descendants), get user approval, then rerun with dryRun=false, expectedTitle, and expectedDescendantCount from the preview.',
               'Need to replace children? Check remnote_status first; remnote_replace_children requires acceptReplaceOperation=true, preserves parent metadata, and supports [[id:<remId>]] for exact inline Rem references.',
               'Need to update tags on an existing note? Use remnote_update_tags with exact tag Rem IDs.',
               'Need to set a tag/table property value? Use remnote_set_property with exact remId, tagRemId, propertyRemId, and a text/rem_reference/clear value payload. For select properties, pass the option Rem ID as rem_reference.remId; for inline references in text values, use [[id:<remId>]].',
@@ -1632,7 +1636,11 @@ export function registerAllTools(
             },
             writePolicy: {
               statusTool: 'remnote_status',
-              requiredFields: ['acceptWriteOperations', 'acceptReplaceOperation'],
+              requiredFields: [
+                'acceptWriteOperations',
+                'acceptReplaceOperation',
+                'acceptDeleteOperation',
+              ],
               guidance: [
                 'Create/update/insert/replace/tag/journal writes require acceptWriteOperations=true.',
                 'remnote_update_note is metadata-only for title and alias changes; use insert_children, replace_children, and update_tags for structural or tag writes.',
@@ -1640,7 +1648,7 @@ export function registerAllTools(
                 'remnote_replace_children requires acceptReplaceOperation=true and preserves parent identity, title, aliases, document status, tags, and properties.',
                 'remnote_insert_children preserves existing child Rem IDs; remnote_replace_children removes existing direct content-child Rem IDs.',
                 'remnote_move_note preserves the moved Rem ID and subtree; dryRun defaults to true.',
-                'remnote_delete_note permanently deletes the Rem and all descendants with no undo; dryRun defaults to true and real deletion of a Rem with descendants requires expectedDescendantCount from the preview.',
+                'remnote_delete_note requires acceptDeleteOperation=true and permanently deletes the Rem and all descendants with no undo; dryRun defaults to true and real deletion of a Rem with descendants requires expectedDescendantCount from the preview.',
                 'All production tag writes use exact tag Rem IDs: create_note.tagRemIds, append_journal.tagRemIds, and update_tags add/remove arrays.',
                 'Markdown-capable write fields support [[id:<remId>]] to create real inline references to existing Rems without name lookup.',
                 'remnote_set_property writes exact-ID tag/table property values and requires acceptWriteOperations=true.',
